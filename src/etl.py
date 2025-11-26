@@ -11,14 +11,6 @@ from pathlib import Path
 from typing import Tuple
 from zipfile import ZipFile
 
-try:
-    from kaggle.api.kaggle_api_extended import KaggleApi
-except ImportError as exc:  # pragma: no cover - dependência externa
-    raise ImportError(
-        "O pacote 'kaggle' é obrigatório para executar o ETL. "
-        "Instale-o com 'pip install kaggle'."
-    ) from exc
-
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parent))
     import auth  # type: ignore
@@ -108,6 +100,14 @@ def executar_etl() -> None:
 
     credenciais = auth.obter_credenciais()
     auth.configurar_kaggle(credenciais)
+
+    try:
+        from kaggle.api.kaggle_api_extended import KaggleApi  # type: ignore
+    except ImportError as exc:  # pragma: no cover - dependência externa
+        raise ImportError(
+            "O pacote 'kaggle' é obrigatório para executar o ETL. "
+            "Instale-o com 'pip install kaggle'."
+        ) from exc
 
     dataset_alvo = os.environ.get("CARDIOIA_KAGGLE_DATASET", DATASET_DEFAULT)
     print(f"[etl] Baixando dataset: {dataset_alvo}")
