@@ -8,8 +8,11 @@ import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, Tuple
 from zipfile import ZipFile
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parent))
@@ -31,37 +34,100 @@ def _extrair_arquivos(raiz: Path) -> None:
         arquivo.unlink(missing_ok=True)
 
 
-def _localizar_splits(base: Path) -> Tuple[Path, Path]:
-    """Encontra diretórios de treino e validação dentro da pasta extraída."""
+def _encontrar_csv(base: Path) -> Path:
+    """Localiza o arquivo Data_Entry_2017.csv dentro dos downloads."""
 
-    val_aliases = {"validation", "val", "valid"}
-
-    for raiz, dirs, _ in os.walk(base):
-        nomes_normalizados = {nome.lower(): nome for nome in dirs}
-        if "train" in nomes_normalizados:
-            for alias in val_aliases:
-                if alias in nomes_normalizados:
-                    train_dir = Path(raiz) / nomes_normalizados["train"]
-                    val_dir = Path(raiz) / nomes_normalizados[alias]
-                    return train_dir.resolve(), val_dir.resolve()
-
+    for caminho in base.rglob("Data_Entry_2017.csv"):
+        return caminho
     raise FileNotFoundError(
-        "Estrutura esperada não encontrada. Certifique-se de que o dataset "
-        "contenha pastas 'train' e 'validation'."
+        "Arquivo 'Data_Entry_2017.csv' não encontrado no dataset baixado."
     )
 
 
-def _sincronizar_origem(origem: Path, destino: Path) -> None:
-    """Move o conteúdo da origem para o destino, substituindo se necessário."""
+def _amostrar_registros(df: pd.DataFrame, rotulo: str, n_amostras: int) -> pd.DataFrame:
+    """Seleciona uma quantidade fixa de amostras para o rótulo informado."""
 
-    if destino.exists():
-        shutil.rmtree(destino)
+    if df.empty:
+        raise ValueError(f"Nenhum registro encontrado para a classe '{rotulo}'.")
 
-    destino.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        shutil.move(str(origem), str(destino))
-    except shutil.Error:
-        shutil.copytree(origem, destino)
+    quantidade = min(len(df), n_amostras)
+    if quantidade < n_amostras:
+        print(
+            f"[etl] Aviso: apenas {quantidade} amostras disponíveis para '{rotulo}'."
+        )
+
+    return df.sample(n=quantidade, random_state=42).assign(label=rotulo)
+
+
+def _indexar_imagens(base: Path) -> Dict[str, Path]:
+    """Cria um índice nome do arquivo -> caminho completo para as imagens."""
+
+    indice: Dict[str, Path] = {}
+    for item in base.rglob("*"):
+        if item.is_file() and item.suffix.lower() in IMAGE_EXTENSIONS:
+            indice.setdefault(item.name, item)
+
+    if not indice:
+        raise FileNotFoundError(
+            "Nenhuma imagem foi encontrada no dataset baixado após a extração."
+        )
+
+    return indice
+
+
+def _preparar_splits(downloads_dir: Path, data_dir: Path) -> Tuple[Path, Path]:
+    """Filtra, amostra, divide e copia as imagens para treino/validação."""
+
+    csv_path = _encontrar_csv(downloads_dir)
+    df = pd.read_csv(csv_path)
+
+    df_cardiomegaly = df[df["Finding Labels"] == "Cardiomegaly"]
+    df_normal = df[df["Finding Labels"] == "No Finding"]
+
+    cardio_amostra = _amostrar_registros(df_cardiomegaly, "cardiomegaly", 1000)
+    normal_amostra = _amostrar_registros(df_normal, "normal", 1000)
+
+    dataset_balanceado = pd.concat([cardio_amostra, normal_amostra], ignore_index=True)
+
+    treino_df, validacao_df = train_test_split(
+        dataset_balanceado,
+        test_size=0.2,
+        random_state=42,
+        stratify=dataset_balanceado["label"],
+    )
+
+    if data_dir.exists():
+        shutil.rmtree(data_dir)
+
+    train_dir = data_dir / "train"
+    validation_dir = data_dir / "validation"
+
+    for base_dir in (train_dir, validation_dir):
+        for classe in ("cardiomegaly", "normal"):
+            (base_dir / classe).mkdir(parents=True, exist_ok=True)
+
+    indice_imagens = _indexar_imagens(downloads_dir)
+    faltantes = 0
+
+    for split_nome, frame in (("train", treino_df), ("validation", validacao_df)):
+        for _, linha in frame.iterrows():
+            imagem = linha["Image Index"]
+            classe = linha["label"]
+            origem = indice_imagens.get(imagem)
+            if origem is None:
+                faltantes += 1
+                print(f"[etl] Aviso: imagem não encontrada '{imagem}'.")
+                continue
+
+            destino = data_dir / split_nome / classe / imagem
+            shutil.copy2(origem, destino)
+
+    if faltantes:
+        print(
+            f"[etl] Aviso: {faltantes} imagens não foram copiadas por ausência no pacote baixado."
+        )
+
+    return train_dir, validation_dir
 
 
 def _contar_imagens(diretorio: Path) -> Counter[str]:
@@ -123,13 +189,10 @@ def executar_etl() -> None:
         api.dataset_download_files(dataset_alvo, path=str(downloads_dir), unzip=True, quiet=False)
         _extrair_arquivos(downloads_dir)
 
-        train_src, val_src = _localizar_splits(downloads_dir)
-
         repo_root = Path(__file__).resolve().parents[1]
         data_dir = repo_root / "data"
 
-        _sincronizar_origem(train_src, data_dir / "train")
-        _sincronizar_origem(val_src, data_dir / "validation")
+        _preparar_splits(downloads_dir, data_dir)
 
         _imprimir_estatisticas(data_dir)
         print("[etl] ETL concluído com sucesso.")
