@@ -1,5 +1,7 @@
 # CardioIA - Fase 4: Pipeline de Visão Computacional e MLOps
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Jr-RS/Fase4_CardioIA/blob/main/notebooks/launcher.ipynb)
+
 ## Sobre
 CardioIA é um sistema de apoio ao diagnóstico de cardiomegalia em radiografias de tórax. O pipeline compara uma CNN baseline construída do zero com um modelo de Transfer Learning baseado na ResNet-50, empregando scripts dedicados de ETL, treinamento parametrizado e rastreamento automático de experimentos versionados no Git.
 
