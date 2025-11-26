@@ -15,12 +15,18 @@ from tensorflow.keras.models import load_model
 def carregar_modelo():
     """Carrega o modelo treinado a partir do diretório models."""
 
-    caminho_modelo = Path(__file__).resolve().parents[1] / "models" / "best_model.h5"
-    if not caminho_modelo.exists():
-        st.error("Modelo não encontrado. Execute o pipeline de treinamento primeiro.")
-        return None
+    modelos_dir = Path(__file__).resolve().parents[1] / "models"
+    candidatos = [
+        modelos_dir / "best_model.h5",
+        modelos_dir / "model_resnet.h5",
+    ]
 
-    return load_model(caminho_modelo)
+    for caminho_modelo in candidatos:
+        if caminho_modelo.exists():
+            return load_model(caminho_modelo)
+
+    st.error("Modelo não encontrado. Execute o pipeline de treinamento primeiro.")
+    return None
 
 
 def processar_imagem(imagem: Image.Image) -> np.ndarray:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -18,9 +19,10 @@ if __package__ in (None, ""):
     import auth  # type: ignore
     import data_preprocessing  # type: ignore
     import model_resnet  # type: ignore
+    import model_simple_cnn  # type: ignore
     import utils_git  # type: ignore
 else:  # pragma: no cover
-    from . import auth, data_preprocessing, model_resnet, utils_git
+    from . import auth, data_preprocessing, model_resnet, model_simple_cnn, utils_git
 
 
 def _gerar_curvas(history) -> Figure:
@@ -87,10 +89,9 @@ def _construir_metricas(
     }
 
 
-def _criar_callbacks(model_dir: Path) -> list:
+def _criar_callbacks(checkpoint_path: Path) -> list:
     """Configura callbacks padrão utilizados durante o treinamento."""
 
-    checkpoint_path = model_dir / "best_model.h5"
     return [
         EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True),
         ModelCheckpoint(filepath=os.fspath(checkpoint_path), monitor="val_loss", save_best_only=True),
@@ -118,6 +119,7 @@ def treinar(
     epochs: int,
     batch_size: int,
     learning_rate: float,
+    model_name: str,
     credenciais: Dict[str, str],
 ) -> None:
     """Executa o treinamento e registra o experimento correspondente."""
@@ -135,27 +137,46 @@ def treinar(
         batch_size=batch_size,
     )
 
-    modelo = model_resnet.construir_modelo(learning_rate=learning_rate)
+    if model_name == "cnn":
+        modelo = model_simple_cnn.construir_modelo(learning_rate=learning_rate)
+    else:
+        modelo = model_resnet.construir_modelo(learning_rate=learning_rate)
+
+    checkpoint_path = models_dir / f"best_model_{model_name}.h5"
 
     history = modelo.fit(
         treino_gen,
         epochs=epochs,
         validation_data=valid_gen,
-        callbacks=_criar_callbacks(models_dir),
+        callbacks=_criar_callbacks(checkpoint_path),
     )
 
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    modelo_path = models_dir / f"cardioia_resnet_{timestamp}.h5"
+    modelo_path = models_dir / f"model_{model_name}.h5"
     modelo.save(os.fspath(modelo_path))
     print(f"[train] Modelo salvo em {modelo_path}")
+
+    if model_name == "resnet":
+        best_model_path = models_dir / "best_model.h5"
+        source_best = checkpoint_path if checkpoint_path.exists() else modelo_path
+        shutil.copy2(source_best, best_model_path)
+        print(f"[train] Modelo principal atualizado em {best_model_path}")
+
+    reports_dir = Path(__file__).resolve().parents[1] / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    figura = _gerar_curvas(history)
+    curvas_path = reports_dir / f"training_curves_{model_name}.png"
+    figura.savefig(curvas_path, dpi=150, bbox_inches="tight")
+    print(f"[train] Curvas de treinamento salvas em {curvas_path}")
 
     params = {
         "epochs": epochs,
         "batch_size": batch_size,
         "learning_rate": learning_rate,
+        "model": model_name,
     }
     metricas = _construir_metricas(history, params, modelo_path)
-    figura = _gerar_curvas(history)
 
     try:
         utils_git.registrar_experimento(
@@ -182,6 +203,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--learning-rate", type=float, default=1e-4, help="Taxa de aprendizado do otimizador"
     )
+    parser.add_argument(
+        "--model",
+        choices=["resnet", "cnn"],
+        default="resnet",
+        help="Define qual arquitetura será treinada",
+    )
     return parser.parse_args()
 
 
@@ -196,6 +223,7 @@ def main() -> None:
         epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
+        model_name=args.model,
         credenciais=credenciais,
     )
 
