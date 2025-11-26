@@ -1,31 +1,51 @@
-# CardioIA - Fase 4: Visão Computacional no Diagnóstico Cardíaco
+# CardioIA - Fase 4: Pipeline de Visão Computacional e MLOps
 
-## Sobre o Projeto
-Este repositório consolida o pipeline desenvolvido para detectar cardiomegalia em radiografias de tórax. O sistema compara duas abordagens de Deep Learning: uma CNN criada do zero como baseline e um modelo de Transfer Learning baseado na ResNet-50, destacando ganhos de desempenho, tempo de treinamento e robustez.
+## Sobre
+CardioIA é um sistema de apoio ao diagnóstico de cardiomegalia em radiografias de tórax. O pipeline compara uma CNN baseline construída do zero com um modelo de Transfer Learning baseado na ResNet-50, empregando scripts dedicados de ETL, treinamento parametrizado e rastreamento automático de experimentos versionados no Git.
 
-## Dataset
-Utilizamos o *NIH Chest X-ray Dataset* (versão otimizada em 224x224 pixels), focado nas classes *Cardiomegaly* e *No Finding*. O notebook realiza o download via Kaggle, aplica o pré-processamento necessário e separa os conjuntos de treino e validação.
+## Arquitetura do Pipeline
+```
+Launcher (Colab)
+      ↓
+ETL Script (src/etl.py)
+      ↓
+Train Script (src/train.py)
+      ↓
+Git Tracking (experiments/ + push automatizado)
+```
+O notebook `notebooks/launcher.ipynb` atua como orquestrador: prepara o ambiente, executa o ETL via Kaggle e dispara o treinamento, que ao final registra métricas, gráficos e metadados diretamente no repositório através do módulo `src/utils_git.py`.
 
-## Estrutura do Projeto
-- `src/`: código-fonte para pré-processamento, definição das arquiteturas (CNN própria e ResNet-50) e scripts de treinamento/inferência.
-- `notebooks/`: notebook `treino_colab.ipynb` preparado para execução em nuvem com todo o pipeline automatizado.
-- `app/`: interface Streamlit para inferência (aplicativo principal está em `src/app.py` caso o diretório não esteja presente localmente).
+## Instalação e Execução (O Guia de Ouro)
 
-## Como Executar (Google Colab - Recomendado)
-1. Abra o notebook `notebooks/treino_colab.ipynb` e clique no badge **Open in Colab** disponível no topo.
-2. Execute as células na ordem. O notebook clona este repositório, realiza o setup das dependências e baixa o dataset automaticamente.
-3. Necessário fazer upload do arquivo `kaggle.json` quando solicitado para habilitar o download direto via API.
+### Opção A — Google Colab (Recomendada)
+1. Abra `notebooks/launcher.ipynb` no GitHub e clique no botão **Open in Colab**.
+2. No Colab, configure os *Secrets* `KAGGLE_USERNAME`, `KAGGLE_KEY` e `GITHUB_TOKEN` em *Settings → Secrets*.
+3. Execute todas as células do notebook para clonar o repositório, instalar dependências, executar o ETL e iniciar o treinamento.
 
-## Como Executar (Localmente)
-1. (Opcional) Crie e ative um ambiente virtual Python.
+### Opção B — Localmente (VS Code)
+1. Configure o arquivo `.env` na raiz utilizando o template disponibilizado.
 2. Instale as dependências:
    ```bash
    pip install -r requirements.txt
    ```
-3. Inicie a aplicação Streamlit:
+3. Execute o ETL (download e organização dos dados):
+   ```bash
+   python src/etl.py
+   ```
+4. Treine o modelo (parâmetros opcionais como `--epochs` e `--batch-size`):
+   ```bash
+   python src/train.py
+   ```
+5. Inicie a interface de inferência:
    ```bash
    streamlit run src/app.py
    ```
+
+## Estrutura de Pastas
+- `src/`: módulos de autenticação (`auth.py`), ETL (`etl.py`), treinamento (`train.py`), modelos e utilitários de versionamento (`utils_git.py`).
+- `notebooks/`: notebooks de apoio; `launcher.ipynb` é o ponto de entrada recomendado para execução em nuvem.
+- `experiments/`: histórico versionado de métricas e gráficos gerados a cada execução de treino.
+- `models/`: artefatos de modelos `.h5` salvos localmente (não versionados em git).
 
 ## Equipe
 Grupo 30 — Ana (Documentação), Carlos (Frontend/EDA), Junior (Tech Lead/Modelagem).

@@ -1,5 +1,10 @@
 tensorflow
-streamlit
-matplotlib
-pillow
+pandas
 numpy
+matplotlib
+scikit-learn
+python-dotenv
+kaggle
+tqdm
+streamlit
+pillow
