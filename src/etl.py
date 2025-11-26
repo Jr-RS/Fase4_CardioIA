@@ -17,7 +17,7 @@ if __package__ in (None, ""):
 else:  # pragma: no cover
     from . import auth
 
-DATASET_DEFAULT = "xhlulu/nih-chest-x-ray-14-224x224-resized"
+DATASET_DEFAULT = "khanfashee/nih-chest-x-ray-14-224x224-resized"
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 
 
