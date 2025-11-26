@@ -1,0 +1,22 @@
+# Data directories
+data/
+archive/
+temp_data/
+
+# Large model weights
+models/*.h5
+
+# Local configuration and secrets
+.env
+kaggle.json
+.vscode/
+
+# Virtual environments and caches
+venv/
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Compressed files
+*.zip
+*.gz
