@@ -17,6 +17,7 @@ def carregar_modelo():
 
     modelos_dir = Path(__file__).resolve().parents[1] / "models"
     candidatos = [
+        modelos_dir / "model.h5",
         modelos_dir / "best_model.h5",
         modelos_dir / "model_resnet.h5",
     ]
@@ -43,10 +44,7 @@ def principal():
     st.set_page_config(page_title="CardioIA", layout="centered")
     st.title("CardioIA - Sistema de Apoio ao Diagnóstico")
 
-    st.sidebar.header("Equipe - Grupo 30")
-    st.sidebar.write("- Junior Rodrigues (Tech Lead)")
-    st.sidebar.write("- Carlos (EDA & Frontend)")
-    st.sidebar.write("- Ana (Documentação & Negócios)")
+    # Sidebar removida para interface mais limpa
 
     st.write(
         "Carregue uma radiografia de tórax para que o CardioIA analise sinais de cardiomegalia."
