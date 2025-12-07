@@ -6,6 +6,7 @@
 <a href="https://www.fiap.com.br/"><img src="assets/logo-fiap.png" alt="FIAP - Faculdade de Informática e Administração Paulista" border="0" width=40% height=40%></a>
 </p>
 
+
 ---
 
 ## Sumário
@@ -27,10 +28,17 @@
 
 ## 1. Visão Geral
 
+<p align="left">
+<a href="https://colab.research.google.com/github/Jr-RS/Fase4_CardioIA/blob/main/notebooks/treino_colab.ipynb" target="_blank">
+<img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+</p>
+
 O **CardioIA** é um protótipo de Assistente Cardiológico Virtual desenvolvido na **Fase 4** do curso da FIAP para apoiar a tomada de decisão clínica por meio da análise de radiografias de tórax. Após estruturar o monitoramento contínuo na fase anterior, avançamos para a análise de dados médicos com Visão Computacional, transformando imagens médicas simuladas em informações interpretáveis.
 
 O sistema utiliza técnicas modernas de Visão Computacional, como redes neurais convolucionais (CNNs) e Transfer Learning, para identificar padrões associados à cardiomegalia. É modular, automatizado e reprodutível, integrando scripts Python, experiment tracking e uma interface intuitiva em Streamlit.
 
+</p>
 <p align="center">
 <img src="assets/tela_inicial.png" alt="Tela inicial do app Streamlit" width="70%">
 <br><em>Interface inicial do aplicativo Streamlit para diagnóstico de cardiomegalia</em>
@@ -258,10 +266,6 @@ Os resultados comprovam o impacto do Transfer Learning em tarefas médicas:
     - Acurácia: 0.89
     - Loss: 0.28
 
-<p align="center">
-<img src="assets/tela_imagem_carregada.png" alt="Realizando a Inferência" width="30%">
-<img src="assets/tela_resultado.png" alt="Resultado" width="30%">width="30%">
-</p>
 
 **Avaliação dos resultados:**
 O modelo ResNet-50 apresentou desempenho superior em acurácia e menor perda, evidenciando os benefícios do Transfer Learning em cenários com dados limitados. Os gráficos mostram a evolução do treinamento e a diferença entre as abordagens. Todos os artefatos, logs e gráficos estão disponíveis na pasta `experiments/` para consulta detalhada.
